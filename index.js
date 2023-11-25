@@ -117,6 +117,94 @@ const QuizNumber = mongoose.model('QuizNumber', QuizNumberSchema);
 const Response = mongoose.model('Response', ResponseSchema);
 const Result = mongoose.model('Result', ResultSchema);
 const Attempted = mongoose.model('Attempted', AttemptedSchema);
+app.post("/signUp",async (req,res) =>{
+    const email = req.body.Mail;
+    
+    try{
+    const existingUser = await User.findOne({ Mail: email });
+    if (existingUser) {
+      notifier.notify({
+        title: 'Notification',
+        message: 'User with the email already exists.',
+      });
+    }
+    if(req.body.iPassword!=req.body.Password){
+      notifier.notify({
+        title: 'Notification',
+        message: 'Passwords do not match please try again.',
+      });
+      res.sendFile(__dirname+"\\Login\\sign_up.html");
+    }
+    else{
+      const newUser = new User({
+        FName: req.body.FName,
+      Username: req.body.Username,
+      Mail: req.body.Mail,
+      Phone: req.body.Phone,
+      Password: req.body.Password,
+      Profession: req.body.Profession
+    });
+    newUser.save();
+    res.sendFile(__dirname+"\\Home\\index.html");
+  } 
+}
+catch (error) {
+  // Handle errors that occur during the asynchronous operations
+  console.error(error);
+  res.status(500).json({ error: 'Internal server error' });
+}
+}
+);
+app.get("/Admin", (req, res) => {
+  console.log(myUsernameAdmin);
+  Team.find({Owner: myUsernameAdmin})
+        .then(docs=>{
+    
+          res.render(__dirname + "\\views\\home.ejs", {
+            MyUsername: myUsernameAdmin,
+            teams: docs,
+          });
+          console.log(docs);
+        })});
+        
+        
+        app.post("/login", (req, res) => {
+          const mail = req.body.Mail;
+  // console.log(mail);
+  const password = req.body.Password;
+  // console.log(req.body);
+  User.findOne({ Mail: mail })
+  .then((docs) => {
+    //  console.log(docs);
+    
+    if (docs) {
+        if (docs.Password === password && docs.Profession === "Teacher") {
+          myUsernameAdmin = docs.Username;
+          res.redirect("/Admin");
+        }
+        else if (docs.Password === password && docs.Profession === "Student") {
+          myUsernameStudent = docs.Username;
+          res.redirect("/Student");
+        }
+        else {
+          notifier.notify({
+            title: 'Notification',
+            message: 'Wrong Password !',
+          });
+        }
+      }
+      else {
+        notifier.notify({
+          title: 'Notification',
+          message: 'Email Id not found , please register',
+        });
+        res.sendFile(__dirname + "\\Home\\index.html");
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  });
 
 app.get("/Admin", (req, res) => {
   console.log(myUsernameAdmin);
@@ -316,8 +404,29 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+app.get("/Student", (req, res) => {
+  res.sendFile(__dirname + "\\Student\\index.html");
+});
+
+app.get("/Student/NewTeam", (req, res) => {
+  res.render("joinTeam.ejs");
+});
+
+app.get("/Student/AddedTeams", (req, res) => {
+  TeamParticipant.find({ Name: myUsernameStudent }).then(function (result, err) {
+    if (err) {
+      console.error('Error querying the collection:', err);
+    }
+    if (result) {
+      res.render("addedTeams.ejs", { teams: result });
+    } else {
+      console.log('No documents found in the collection.');
+    }
+  });
+});
 
 var Quizzes;
+
 
 app.get("/Admin/createQuiz/AddTeam", (req, res) => {
   res.render("addTeam.ejs");
@@ -553,6 +662,39 @@ app.post("/Admin/api/posts/:id", async (req, res) => {
 });
 
 // Delete a post
+app.get("/Admin/api/posts/delete/:id", async (req, res) => {
+  try {
+    const filter = { Username: myUsernameAdmin, Id: req.params.id };
+    
+    Question.deleteOne(filter)
+    .then(result => {
+      console.log('Document deleted successfully:', result);
+    })
+    .catch(err => {
+        console.error('Error deleting document:', err);
+      })
+      
+      res.redirect("/Admin/createQuiz");
+      await axios.delete(`${API_URL}/posts/${req.params.id}`);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Error deleting post" });
+    }
+  });
+
+  // submit posts
+  app.get("/Admin/createQuiz/submit", async (req, res) => {
+    res.render(__dirname + "\\views\\home.ejs", { MyUsername: myUsernameAdmin });
+});
+
+app.get("/Student/result", (req, res) => {
+  Attempted.find({ Student: myUsernameStudent })
+  .then(docs => {
+      res.render("attemptedTeams.ejs",
+      { teams: docs });
+    });
+});
+
 app.post("/Student/Attempted/:team", (req, res) => {
   Attempted.find({ Student: myUsernameStudent, TeamName: req.params.team })
     .then(docs => {
@@ -561,7 +703,28 @@ app.post("/Student/Attempted/:team", (req, res) => {
       { teams: docs });
     });
   });
-  
+   const querySchema = new mongoose.Schema({
+    Name: String,
+    Email: String,
+    Message: String,
+  });
+  const Query = mongoose.model('Query',querySchema);
+  app.get("/contactUs",(req,res)=>{
+    res.sendFile(__dirname+"\\Home\\contact_us.html");
+  });
+  app.post("/contactUs",(req,res)=>{
+    const newQueryUser = new Query({
+      Name: req.body.Name,
+      Email: req.body.Email,
+      Message: req.body.Message,
+    });
+    newQueryUser.save();
+    notifier.notify({
+      title: 'Notification',
+      message: 'Query Succesfully Saved',
+    });
+    res.sendFile(__dirname+"\\Home\\contact_us.html");
+  });
   
   app.post("/Student/Attempted/Result/Quiz/:id", (req, res) => {
     var length;
