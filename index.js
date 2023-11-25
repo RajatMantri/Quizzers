@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  res.sendFile(__dirname + "\\Sign-In\\sign_in.html");
+  res.sendFile(__dirname + "\\Sign-Up\\sign_in.html");
 });
 // C:\Users\hp\Downloads\WEBSTER\Avishkar\Home\index.html  
 
