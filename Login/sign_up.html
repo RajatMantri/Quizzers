@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!-- Designined by CodingLab - youtube.com/codinglabyt -->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8">
+    <title> Responsive Registration Form | CodingLab </title>
+    <link rel="stylesheet" href="./styleL.css">
+    <style>
+      body {
+    transition: background-color white 0.3s ease;
+    font-family: Arial, sans-serif;
+}
+
+.dark-mode {
+    background-color: #333;
+    color: #fff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+    </style>
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   </head>
+<body>
+  <div class="container">
+    <div class="title">Registration</div>
+    <div class="content">
+      <form action="/signUp" method="post">
+        <div class="user-details">
+          <div class="input-box">
+            <span class="details">Full Name</span>
+            <input type="text" placeholder="Enter your name" name="FName">
+          </div>
+          <div class="input-box">
+            <span class="details">Username</span>
+            <input type="text" placeholder="Enter your username" name="Username">
+          </div>
+          <div class="input-box">
+            <span class="details">Email</span>
+            <input type="text" placeholder="Enter your email" name="Mail">
+          </div>
+          <div class="input-box">
+            <span class="details">Phone Number</span>
+            <input type="text" placeholder="Enter your number" name="Phone">
+          </div>
+          <div class="input-box">
+            <span class="details">Password</span>
+            <input type="password" placeholder="Enter your password" name="iPassword">
+          </div>
+          <div class="input-box">
+            <span class="details">Confirm Password</span>
+            <input type="password" placeholder="Confirm your password" name="Password">
+          </div>
+          <div class="input-box">
+            <span class="details" >Profession</span>
+            <select  id="profession" class="details" style="width: 500px; height: 30px" name="Profession">
+              <option value="Teacher">Teacher</option>
+              <option value="Student">Student</option>
+            </select>
+          </div>
+        </div>
+        <!-- <div class="gender-details">
+          <input type="radio" name="gender" id="dot-1">
+          <input type="radio" name="gender" id="dot-2">
+          <input type="radio" name="gender" id="dot-3">
+          <span class="gender-title">Profession</span>
+          <div class="category">
+            <label for="dot-1">
+            <span class="dot one"></span>
+            <span class="gender">Teacher</span>
+          </label>
+          <label for="dot-2">
+            <span class="dot two"></span>
+            <span class="gender">Student</span>
+          </label>
+          </div>
+        </div> -->
+        <div class="button">
+          <input type="submit" value="Register">
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const body = document.body;
+        const toggleThemeButton = document.getElementById('toggleThemeButton');
+    
+        // Check if dark mode preference is stored in local storage
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    
+        // Set initial theme based on user's preference
+        toggleDarkMode(isDarkMode);
+    
+        // Add event listener to the theme toggle button
+        toggleThemeButton.addEventListener('click', function () {
+            // Toggle dark mode and update local storage
+            const newMode = !body.classList.contains('dark-mode');
+            toggleDarkMode(newMode);
+            localStorage.setItem('darkMode', newMode);
+        });
+    });
+    
+    function toggleDarkMode(isDarkMode) {
+        const body = document.body;
+    
+        // Toggle CSS class based on the dark mode status
+        if (isDarkMode) {
+            body.classList.add('dark-mode');
+        } else {
+            body.classList.remove('dark-mode');
+        }
+    }
+        </script>
+</body>
+</html>
