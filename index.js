@@ -118,6 +118,118 @@ const Response = mongoose.model('Response', ResponseSchema);
 const Result = mongoose.model('Result', ResultSchema);
 const Attempted = mongoose.model('Attempted', AttemptedSchema);
 
+app.get("/Admin", (req, res) => {
+  console.log(myUsernameAdmin);
+  Team.find({Owner: myUsernameAdmin})
+        .then(docs=>{
+    
+          res.render(__dirname + "\\views\\home.ejs", {
+            MyUsername: myUsernameAdmin,
+            teams: docs,
+          });
+          console.log(docs);
+        })});
+        
+        
+        app.post("/login", (req, res) => {
+          const mail = req.body.Mail;
+  // console.log(mail);
+  const password = req.body.Password;
+  // console.log(req.body);
+  User.findOne({ Mail: mail })
+  .then((docs) => {
+    //  console.log(docs);
+    
+    if (docs) {
+        if (docs.Password === password && docs.Profession === "Teacher") {
+          myUsernameAdmin = docs.Username;
+          res.redirect("/Admin");
+        }
+        else if (docs.Password === password && docs.Profession === "Student") {
+          myUsernameStudent = docs.Username;
+          res.redirect("/Student");
+        }
+        else {
+          notifier.notify({
+            title: 'Notification',
+            message: 'Wrong Password !',
+          });
+        }
+      }
+      else {
+        notifier.notify({
+          title: 'Notification',
+          message: 'Email Id not found , please register',
+        });
+        res.sendFile(__dirname + "\\Home\\index.html");
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  });
+  
+  app.get("/createQuiz", (req, res) => {
+    res.redirect("/Admin/createQuiz");
+  });
+  
+  const API_URL = "http://localhost:4000";
+  app.use(express.static("public"));
+  app.use(bodyParser.json());
+  
+  // Route to render the main page
+  app.get("/Admin/createQuiz", async (req, res) => {
+    try {
+      const response = await axios.get(`${API_URL}/posts`);
+      if (newExistingTeam === null) {
+        notifier.notify({
+          title: 'Notification',
+          message: 'Please add team first and set time also!',
+        });
+    }
+    res.render("index.ejs", { posts: response.data });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error fetching posts" });
+  }
+});
+
+// Route to render the edit page
+app.get("/Admin/new", (req, res) => {
+  res.render("modify.ejs", { heading: "New Question", submit: "Create Question" });
+});
+
+app.get("/Admin/Time", (req, res) => {
+  console.log(req.body);
+  res.render("time.ejs");
+});
+
+app.post("/Admin/Time", (req, res) => {
+  console.log(req.body);
+  timeHours = req.body.hours;
+  timeMinutes = req.body.minutes;
+  res.redirect("/Admin/createQuiz");
+  
+});
+
+app.get("/Admin/edit/:id", async (req, res) => {
+  try {
+    const response = await axios.get(`${API_URL}/posts/${req.params.id}`);
+    // console.log("/Admin/edit/:id"+response.data);
+    res.render("modify.ejs", {
+      heading: "Edit Question",
+      submit: "Update Question",
+      post: response.data,
+    });
+    
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching post" });
+  }
+});
+
+app.get("/Admin/Team", (req, res) => {
+  res.render("team.ejs");
+});
 
 app.get("/Admin/ExistingTeam", (req, res) => {
   Team.find({ Owner: myUsernameAdmin }).then(function (result, err) {
