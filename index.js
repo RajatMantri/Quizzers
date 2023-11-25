@@ -684,7 +684,7 @@ app.get("/Admin/api/posts/delete/:id", async (req, res) => {
 
   // submit posts
   app.get("/Admin/createQuiz/submit", async (req, res) => {
-    res.render(__dirname + "\\views\\home.ejs", { MyUsername: myUsernameAdmin });
+   res.redirect("/Admin");
 });
 
 app.get("/Student/result", (req, res) => {
