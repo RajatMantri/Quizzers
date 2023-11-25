@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Question</title>
+  <link rel="stylesheet" href="/styles/main.css">
+  <style>
+body,
+h1,
+h2,
+p,
+ul,
+li,
+form,
+input,
+textarea,
+a {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-family: "Arial", sans-serif;
+}
+
+body {
+  background-color: #f7f9fc;
+  color: #333;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 20px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+p,
+input,
+textarea {
+  margin-bottom: 20px;
+}
+
+small {
+  display: block;
+  margin-bottom: 20px;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+  outline: none;
+  transition: border 0.3s;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #007bff;
+}
+
+a,
+button {
+  text-decoration: none;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px;
+  font-size: 1em;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button.full-width {
+  display: block;
+  text-align: center;
+  width: 100%;
+}
+
+a,
+button:hover {
+  background-color: #0056b3;
+}
+
+ul {
+  list-style-type: none;
+}
+
+li {
+  padding: 20px 0;
+  border-bottom: 1px solid #eee;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+a.edit {
+  background-color: #007bff;
+}
+
+a.delete {
+  background-color: #e74c3c;
+}
+
+a.delete:hover {
+  background-color: #c0392b;
+}
+
+#newPostBtn {
+  margin: 20px 0;
+  background-color: #2ecc71;
+  padding: 10px 15px;
+  font-size: 1em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border: none;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+}
+
+#newPostBtn:hover {
+  background-color: #27ae60;
+}
+    
+.hidden {
+      display: none;
+    }
+
+    body {
+    transition: background-color white 0.3s ease;
+    font-family: Arial, sans-serif;
+}
+
+.dark-mode {
+    background-color: #333;
+    color: #fff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>
+      <%= heading %>
+    </h1>
+
+    <% if (locals.post) { %>
+      <form id="editForm" method="post" action="/Admin/api/posts/<%=post.id%>">
+        <input type="text" name="title" value="<%=post.title %>">
+        
+        <!-- Subjective -->
+       <% if(locals.post.content){ %>
+          <div id="textOptions" class="">
+            <label for="userInput">Enter your Answer</label>
+            <input type="text" name="content" >
+          </div>
+       <% } %>
+        
+        <!-- T/F  -->
+       <% if(locals.post.tf){ %>
+        <div id="radioOptions" >
+            <label for="trueOption"> True</label>
+            <input type="radio" id="trueOption" value="true" name="tf<%=post.id%>" style="display: inline;">
+            <label for="trueOption">False</label>
+            <input type="radio" id="falseOption" value="false" name="tf<%=post.id%>" style="display: inline;">
+          </div>
+     <%   } %>
+
+        <!-- mcqs -->
+   <%     if(locals.post.mcq){ %>
+     <div id="mcqOptions"> 
+             <label for="trueOption"> Select the correct answer<br></label>
+            <label for="option1"><%=post.mcq1%></label>
+            <input type="radio" value="Option1" name="mcq<%=post.id%>" style="display: inline;">
+            <label for="option2"><%=post.mcq2%></label>
+            <input type="radio" value="Option2" name="mcq<%=post.id%>" style="display: inline;">
+            <label for="option3"><%=post.mcq3%></label>
+            <input type="radio" value="Option3" name="mcq<%=post.id%>" style="display: inline;">
+            <label for="option4"><%=post.mcq4%></label>
+            <input type="radio" value="Option4" name="mcq<%=post.id%>" style="display: inline;"> 
+          </div>
+         <% } %>
+        <button class="full-width" type="submit">
+          <%= submit %>
+        </button>
+      </form>
+      <% } else {%>
+        <form id="newPostForm" method="post" action="/Admin/api/posts">
+          <input type="text" name="title" placeholder="Title" required>
+
+          <select id="questionType" onchange="showOptions()"  style="height: 5vh; width: 50vh;margin-bottom:25px ;">
+            <option value="none" selected="true" disabled>Select your answer type</option>
+            <option value="longShort">Long Answer/Short Answer</option>
+            <option value="trueFalse">True/False</option>
+            <option value="mcqs">MCQs</option>
+          </select>
+          <br>
+          <!-- Subjective -->
+          <div id="textOptions" class="hidden">
+            <textarea name="content" placeholder="Enter your answer" rows="10" id="textarea" ></textarea>
+          </div>
+
+          <!-- T/F -->
+          <div id="radioOptions" class="hidden">
+            <label for="trueOption"> True</label>
+            <input type="radio" id="trueOption" name="tf" value="true">
+            <label for="trueOption">False</label>
+            <input type="radio" id="falseOption" name="tf" value="false">
+          </div>
+
+           <!-- mcqs -->
+           <div id="mcqOptions" class="hidden">
+           <label for="trueOption"> Select the correct Option<br></label>
+          <input type="radio" id="1(1)option" name="mcq" value="Option1">
+          <input type="text" id="1option" name="mcq1" value="Option1">
+          <input type="radio" id="1(2)option" name="mcq" value="Option2">
+          <input type="text" id="2option" name="mcq2" value="Option2">
+          <input type="radio" id="1(3)option" name="mcq" value="Option3">
+          <input type="text" id="3option" name="mcq3" value="Option3">
+          <input type="radio" id="1(4)option" name="mcq" value="Option4">
+          <input type="text" id="4option" name="mcq4" value="Option4">
+
+         </div> 
+          <button class="full-width" type="submit">
+            <%= submit %>
+          </button>
+        </form>
+        <% } %>
+
+  </div>
+  <script>
+    function showOptions() {
+      var questionType = document.getElementById('questionType').value;
+      var textOptions = document.getElementById('textOptions');
+      var radioOptions = document.getElementById('radioOptions');
+      var mcqOptions = document.getElementById('mcqOptions');
+
+      // Hide all options first
+      textOptions.classList.add('hidden');
+      radioOptions.classList.add('hidden');
+      mcqOptions.classList.add('hidden');
+
+      // Show the relevant options based on the selected question type
+      if (questionType === 'longShort') {
+        textOptions.classList.remove('hidden');
+      } else if (questionType === 'trueFalse') {
+        radioOptions.classList.remove('hidden');
+      } else if (questionType === 'mcqs') {
+        mcqOptions.classList.remove('hidden');
+      }
+    }
+
+    function addOption() {
+    var container = document.getElementById('optionsContainer');
+
+    var optionLabel = document.createElement('label');
+    var optionText = prompt('Enter option text:');
+    optionLabel.textContent = optionText;
+
+    var radioButton = document.createElement('input');
+    radioButton.type = 'radio';
+    radioButton.value = optionText;
+    radioButton.name = 'mcq';
+    radioButton.style.display = 'inline';
+
+    optionLabel.appendChild(radioButton);
+
+    container.appendChild(optionLabel);
+  }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const body = document.body;
+    const toggleThemeButton = document.getElementById('toggleThemeButton');
+
+    // Check if dark mode preference is stored in local storage
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+    // Set initial theme based on user's preference
+    toggleDarkMode(isDarkMode);
+
+    // Add event listener to the theme toggle button
+    toggleThemeButton.addEventListener('click', function () {
+        // Toggle dark mode and update local storage
+        const newMode = !body.classList.contains('dark-mode');
+        toggleDarkMode(newMode);
+        localStorage.setItem('darkMode', newMode);
+    });
+});
+
+function toggleDarkMode(isDarkMode) {
+    const body = document.body;
+
+    // Toggle CSS class based on the dark mode status
+    if (isDarkMode) {
+        body.classList.add('dark-mode');
+    } else {
+        body.classList.remove('dark-mode');
+    }
+}
+
+  </script>
+</body>
+
+</html>
