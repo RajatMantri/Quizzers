@@ -12,6 +12,8 @@ const app = express();
 var myUsernameAdmin;
 var myUsernameStudent;
 var addedTeam;
+var adminTeam;
+var quizViewed;
 var quizNumber = 1;
 var newExistingTeam = null;
 var timeHours;
@@ -90,6 +92,7 @@ const ResponseSchema = new mongoose.Schema({
   Content: String,
   TF: String,
   MCQs: String,
+  Attempts: Number,
 });
 
 const ResultSchema = new mongoose.Schema({
@@ -101,12 +104,39 @@ const ResultSchema = new mongoose.Schema({
   Content: String,
   TF: String,
   MCQs: String,
+   Score: Number,
+  Total: Number,
+  Attempts: Number,
 });
 
 const AttemptedSchema = new mongoose.Schema({
   QuizNumber: Number,
   Student: String,
   TeamName: String,
+});
+
+const AttemptedTeamSchema = new mongoose.Schema({
+  Student: String,
+  TeamName: String,
+});
+
+
+const CorrectedSchema = new mongoose.Schema({
+  FName: String,
+  TeamName: String,
+  QuizNumber: Number,
+  Id: Number,
+  Correctness: String,
+  Selected: String,
+  Title: String,
+  Content: String,
+  TF: String,
+  MCQs: String,
+  MCQ1: String,
+  MCQ2: String,
+  MCQ3: String,
+  MCQ4: String,
+  Attempts: Number,
 });
 
 const User = mongoose.model('User', userSchema);
@@ -117,11 +147,15 @@ const QuizNumber = mongoose.model('QuizNumber', QuizNumberSchema);
 const Response = mongoose.model('Response', ResponseSchema);
 const Result = mongoose.model('Result', ResultSchema);
 const Attempted = mongoose.model('Attempted', AttemptedSchema);
-app.post("/signUp",async (req,res) =>{
-    const email = req.body.Mail;
-    
-    try{
-    const existingUser = await User.findOne({ Mail: email });
+const Corrected = mongoose.model('Corrected', CorrectedSchema);
+const AttemptedTeam = mongoose.model('AttemptedTeam', AttemptedTeamSchema);
+const Screenshot = mongoose.model('Screenshot', ScreenshotSchema);
+
+app.post("/signUp", async (req, res) => {
+  const email = req.body.Mail;
+
+  try {
+       const existingUser = await User.findOne({ Mail: email });
     if (existingUser) {
       notifier.notify({
         title: 'Notification',
@@ -333,9 +367,21 @@ app.get("/Admin/ExistingTeam", (req, res) => {
   });
 });
 
-app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
+app.post("/Student/AddedTeams/Quiz/:id", async (req, res) => {
   try {
     const docs = await Question.find({ TeamName: addedTeam, QuizNumber: quizTaken });
+
+      const newchecking = await AttemptedTeam.findOne({ Student: myUsernameStudent,TeamName: addedTeam });
+    const checking = await Response.findOne({ Student: myUsernameStudent,TeamName: addedTeam, QuizNumber: quizTaken });
+    let quizAttempts = 1;
+  await Response.findOne({ Student: myUsernameStudent,TeamName: addedTeam,QuizNumber: quizTaken })
+    .sort({ Attempts: -1 })
+    .then(checkingResponses=>{
+      if (checkingResponses) {
+        quizAttempts = checkingResponses.Attempts + 1;
+      }
+    });
+    
     var idx = 0;
     for (const doc of docs) {
       let newResponse;
@@ -352,6 +398,7 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
           Content: Object.values(req.body)[idx],
           TF: null,
           MCQs: null,
+           Attempts: quizAttempts,
         });
       } else if (doc.TF != null) {
         newResponse = new Response({
@@ -365,6 +412,7 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
           Content: null,
           TF: Object.values(req.body)[idx],
           MCQs: null,
+           Attempts: quizAttempts,
         });
       } else if (doc.MCQs != null) {
         newResponse = new Response({
@@ -378,6 +426,7 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
           Content: null,
           TF: null,
           MCQs: Object.values(req.body)[idx],
+           Attempts: quizAttempts,
         });
       }
       // Check if newResponse is defined before calling save
@@ -394,9 +443,18 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
       Student: myUsernameStudent,
       TeamName: addedTeam,
     });
-    
-    newAttempted.save();
-    
+
+     const newAttemptedTeam = new AttemptedTeam({
+     Student: myUsernameStudent,
+     TeamName: addedTeam,
+    });
+       if (!checking) {
+      newAttempted.save();
+       }
+
+    if(!newchecking){
+      newAttemptedTeam.save();
+    }
     
     res.redirect("/Student");
   } catch (error) {
@@ -404,8 +462,11 @@ app.post("/Student/AddedTeams/Quiz/:i", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 app.get("/Student", (req, res) => {
-  res.sendFile(__dirname + "\\Student\\index.html");
+  res.render(__dirname + "\\views\\student.ejs", {
+    MyUsername: myUsernameStudent,
+  });
 });
 
 app.get("/Student/NewTeam", (req, res) => {
@@ -448,7 +509,24 @@ app.get("/Student/AddedTeams/Quiz/:i", (req, res) => {
       console.error('Error finding and sorting quizzes:', error);
     });
   });
-  
+
+app.get("/Admin/PreviousTeams/Quiz/View/:i", (req, res) => {
+  const i = req.params.i;
+  quizViewed = i;
+  console.log("AdminTeam= " + adminTeam);
+  Question.find({ TeamName: adminTeam, QuizNumber: i })
+    .then(Quiz => {
+      try {
+        res.render("quizView.ejs", { posts: JSON.parse(JSON.stringify(Quiz)) });
+      } catch (error) {
+        console.error('Error parsing JSON:', error.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error finding and sorting quizzes:', error);
+    });
+});
+
 app.post("/Student/AddedTeams/:team", (req, res) => {
   addedTeam = req.params.team;
   // console.log("addedTeam "+addedTeam);
@@ -478,7 +556,7 @@ app.post("/Student/AddedTeams/:team", (req, res) => {
           .catch(err => {
             console.error('Error updating document:', err);
           })
-          quizNumber = lastDocument.QuizNo;
+         // quizNumber = lastDocument.QuizNo;
         } else {
           quizNumber = 1;
 
@@ -687,6 +765,50 @@ app.get("/Admin/api/posts/delete/:id", async (req, res) => {
    res.redirect("/Admin");
 });
 
+app.get("/Student/AttemptedTeam", (req, res) => {
+  AttemptedTeam.find({ Student: myUsernameStudent })
+    .then(docs => {
+      console.log(docs);
+      console.log(myUsernameStudent);
+      res.render("attemptedTeams.ejs", { teams: docs });
+    })
+    .catch(error => {
+      console.error("Error:", error);
+    });
+});
+
+app.get("/Admin/previousQuizzes", (req, res) => {
+  Team.find({ Owner: myUsernameAdmin })
+    .then(function (result, err) {
+      if (err) {
+        console.error('Error querying the collection:', err);
+      }
+      if (result) {
+        res.render("previousTeams.ejs", { teams: result });
+      } else {
+        console.log('No documents found in the collection.');
+      }
+    })
+});
+
+app.post("/Admin/PreviousTeams/:team", (req, res) => {
+  adminTeam = req.params.team;
+  // console.log("addedTeam "+addedTeam);
+  Question.findOne({ TeamName: adminTeam })
+    .sort({ QuizNumber: -1 })
+    .then(sortedQuizzes => {
+      res.render("teamQuizzesAdmin.ejs", { quizNumber: sortedQuizzes.QuizNumber, teamname: adminTeam });
+    })
+    .catch(error => {
+      notifier.notify({
+        title: 'My Notification',
+        message: 'No Quizzes Created',
+        sound: true, // Plays a sound
+        wait: true,  // Wait with the notification until the user closes it
+      });
+      res.redirect("/Admin");
+      console.error('Error finding and sorting quizzes:', error);
+
 app.get("/Student/result", (req, res) => {
   Attempted.find({ Student: myUsernameStudent })
   .then(docs => {
@@ -726,51 +848,161 @@ app.post("/Student/Attempted/:team", (req, res) => {
     res.sendFile(__dirname+"\\Home\\contact_us.html");
   });
   
-  app.post("/Student/Attempted/Result/Quiz/:id", (req, res) => {
-    var length;
-    var responses;
-    var answers;
-    Response.find({Student:myUsernameStudent,TeamName:teamResult,QuizNumber:quizResult})
-    .then(docs=>{
-      const id=docs.Id;
-      Question.findOne({TeamName:teamResult,QuizNumber:quizResult,Id: id})
-      .then(answer=>{
-       if(answer.TF===docs.TF && answer.Content===docs.Content && answer.MCQs===docs.MCQs){
-        const newResult = new Result({
-        QuizNumber: answer.QuizNumber,
-        Student: myUsernameStudent,
+  app.post("/Student/Attempted/Result/Quiz/:quizNo", async( req, res ) =>{
+Response.findOne({Student: myUsernameStudent, TeamName:teamResult, QuizNumber: req.params.quizNo}).sort({Attempts: -1})
+.then(responses=>{
+
+  console.log("QuizNumber: "+responses.QuizNumber+" Student: "+responses.Student+" Attempts: "+responses.Attempts);
+  var attempts=1;
+  if(responses){
+    attempts = responses.Attempts;
+    }
+  res.render("attempts.ejs",{teamName: teamResult,attemptNumber: attempts, quizNumber: req.params.quizNo});
+});
+});
+
+      app.post("/Student/Attempted/Result/Quiz/:quizNo/:attemptNo", async (req, res) => {
+  try {
+    const responses = await Response.find({
+      Student: myUsernameStudent,
+      TeamName: teamResult,
+      QuizNumber: req.params.quizNo,
+      Attempts: req.params.attemptNo,
+    });
+
+    let totalQuestions = 0;
+    let correctAnswers = 0;
+
+    for (const response of responses) {
+      const answer = await Question.findOne({
         TeamName: teamResult,
-        Id: id,
-        Title: answer.Title,
-        Content:answer.Content,
-        TF:answer.TF,
-        MCQs:answer.MCQs,
-        });
-        newResult.save();
-       }
-       else {
-        const newResult = new Result({
-        QuizNumber: answer.QuizNumber,
-        Student: myUsernameStudent,
-        TeamName: teamResult,
-        Id: id,
-        Title: answer.Title,
-        Content:docs.Content,
-        TF:docs.TF,
-        MCQs:docs.MCQs,
-        });
-        newResult.save();
-       }
+        QuizNumber: req.params.quizNo,
+        Id: response.Id,
       });
+
+      totalQuestions++;
+      // console.log("Total: "+totalQuestions);
+
+      if (answer.TF === response.TF && answer.Content === response.Content && answer.MCQs === response.MCQs) {
+        correctAnswers++;
+        // console.log("Correct: "+correctAnswers);
+        const corrected = await Corrected.findOne({
+          FName: myUsernameStudent,
+          TeamName: teamResult,
+          QuizNumber: req.params.quizNo,
+          Id: response.Id,
+          Attempts: req.params.attemptNo,
+        });
+
+        var selected;
+        if (response.TF) selected = response.TF;
+        else if (response.Content) selected = response.Content;
+        else if (response.MCQs) selected = response.MCQs;
+
+        if (!corrected) {
+          const Correct = new Corrected({
+            FName: myUsernameStudent,
+            TeamName: teamResult,
+            QuizNumber: req.params.quizNo,
+            Id: response.Id,
+            Correctness: "True",
+            Selected: selected,
+            Title: answer.Title,
+            Content: answer.Content,
+            TF: answer.TF,
+            MCQs: answer.MCQs,
+            MCQ1: answer.MCQ1,
+            MCQ2: answer.MCQ2,
+            MCQ3: answer.MCQ3,
+            MCQ4: answer.MCQ4,
+            Attempts: req.params.attemptNo,
+          });
+          await Correct.save();
+        }
+      } else {
+        const corrected = await Corrected.findOne({
+          FName: myUsernameStudent,
+          TeamName: teamResult,
+          QuizNumber: req.params.quizNo,
+          Id: response.Id,
+          Attempts: req.params.attemptNo,
+        });
+
+        var selected;
+        if (response.TF) selected = response.TF;
+        else if (response.Content) selected = response.Content;
+        else if (response.MCQs) selected = response.MCQs;
+
+        if (!corrected) {
+          const Correct = new Corrected({
+            FName: myUsernameStudent,
+            TeamName: teamResult,
+            QuizNumber: req.params.quizNo,
+            Id: response.Id,
+            Correctness: "False",
+            Selected: selected,
+            Title: answer.Title,
+            Content: answer.Content,
+            TF: answer.TF,
+            MCQs: answer.MCQs,
+            MCQ1: answer.MCQ1,
+            MCQ2: answer.MCQ2,
+            MCQ3: answer.MCQ3,
+            MCQ4: answer.MCQ4,
+            Attempts: req.params.attemptNo,
+          });
+          await Correct.save();
+        }
+      }
+    }
+
+    const newCorrect = await Corrected.find({
+      FName: myUsernameStudent,
+      TeamName: teamResult,
+      QuizNumber: req.params.quizNo,
+      Attempts: req.params.attemptNo,
     });
     
-      Result.find({ Student: myUsernameStudent, TeamName: teamResult, QuizNumber: req.params.id })
-        .then(docs => {
-          quizResult = req.params.id;
-          res.render("result.ejs",
-            { teams: docs });
-        });
+    const newResult = Result({
+    QuizNumber: req.params.quizNo,
+    Student: myUsernameStudent,
+    TeamName: teamResult,
+    Score: correctAnswers,
+    Total: totalQuestions,
+    Attempts: req.params.attemptNo,
     });
+   
+  const newResultCheck =  await Result.findOne({
+      QuizNumber: req.params.quizNo,
+      Student: myUsernameStudent,
+      TeamName: teamResult,
+      Score: correctAnswers,
+      Total: totalQuestions,
+      Attempts: req.params.attemptNo,
+    });
+
+    if(!newResultCheck){
+      newResult.save();
+    }
+
+    res.render("result.ejs", { posts: newCorrect, Total: totalQuestions, Correct: correctAnswers , 
+      QuizNo: req.params.quizNo, AttemptNo: req.params.attemptNo, TeamName: teamResult});
+  } catch (error) {
+    console.error('Error finding and sorting quizzes:', error);
+    // Handle the error or send an appropriate response
+    res.status(500).send('Internal Server Error');
+  }
+});
+    
+    
+app.post("/Student/Attempted/Result/Quiz/Leaderboard/:team/:quizNo/:attemptNo", (req,res)=>{
+
+Result.find({TeamName: req.params.team, QuizNumber: req.params.quizNo, Attempts: req.params.attemptNo})
+.sort({Score: -1})
+.then(docs=>{
+res.render("leaderboard.ejs",{posts: docs});
+});
+});
     
   app.listen(port, () => {
     console.log(`Listening at port ${port}`);
